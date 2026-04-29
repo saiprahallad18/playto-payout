@@ -1,25 +1,36 @@
-from celery import shared_task
-from django.utils import timezone
 import time
+import random
+from .models import Payout, LedgerEntry
 
-from .models import Payout
+def process_payout(payout_id):
+    payout = Payout.objects.get(id=payout_id)
+    merchant = payout.merchant
 
+    # STEP 1: mark processing
+    payout.status = "processing"
+    payout.save()
 
-@shared_task(bind=True, max_retries=3)
-def process_payout(self, payout_id):
-    try:
-        payout = Payout.objects.get(id=payout_id)
+    time.sleep(2)
 
-        payout.status = 'processing'
-        payout.processing_started_at = timezone.now()
+    # STEP 2: simulate success/failure
+    if random.choice([True, False]):
+        # ❌ FAILURE
+        payout.status = "failed"
         payout.save()
 
-        # simulate processing delay
-        time.sleep(5)
+        # 🔁 REFUND ENTRY
+        LedgerEntry.objects.create(
+            merchant=merchant,
+            entry_type='credit',
+            amount_paise=payout.amount_paise,
+            description='Refund for failed payout'
+        )
 
-        # simulate success
-        payout.status = 'completed'
-        payout.save()
+        print("❌ FAILED + REFUND DONE")
+        return
 
-    except Exception as e:
-        raise self.retry(exc=e, countdown=5)
+    # ✅ SUCCESS
+    payout.status = "completed"
+    payout.save()
+
+    print("✅ COMPLETED")
