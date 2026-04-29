@@ -67,7 +67,7 @@ def create_payout(request):
         amount_paise=data['amount_paise'],
         description='Payout'
     )
-    process_payout.delay(str(payout.id))
+    process_payout.delay(payout.id)
 
     return Response({
         "payout_id": str(payout.id),
