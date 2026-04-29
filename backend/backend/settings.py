@@ -107,8 +107,3 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
 }
-
-import os
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
